@@ -1,4 +1,4 @@
-# STORM: Structured Task-Oriented Object-Interaction Motion for Robot Mimicry
+# STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation for Humanoid-Object Interaction
 
 ## 1. Motivation
 
@@ -48,13 +48,13 @@ Text + Object State + Robot Embodiment
    Simulation Rollout and Evaluation
 ```
 
-Implementation details (network blocks, embodiment encoding, losses, and training stages) are documented in [STROM.md](./STROM.md).
+Implementation details (network blocks, embodiment encoding, losses, and training stages) are documented in [STORM.md](./STORM.md).
 
 ## 5. Training Objective
 
 We optimize motion quality, interaction consistency, physical plausibility, and robot feasibility jointly.
 
-Detailed objective terms, stage-wise schedules, and practical hyper-parameter defaults are specified in [STROM.md](./STROM.md).
+Detailed objective terms, stage-wise schedules, and practical hyper-parameter defaults are specified in [STORM.md](./STORM.md).
 
 
 ## 6. Datasets and Baselines

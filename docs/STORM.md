@@ -1,4 +1,13 @@
-# STROM: Method Implementation and Training Details
+# STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation
+
+## Title
+**STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation for Humanoid-Object Interaction**
+
+## Acronym
+**STORM** = **S**patio-**T**emporal **O**utcome-aligned **R**obot **M**otion Co-generation
+
+## Document Scope
+This document provides the implementation and training details of STORM.
 
 ## 1. Scope
 
