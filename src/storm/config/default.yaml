@@ -1,0 +1,52 @@
+seed: 42
+device: cuda
+
+model:
+  d_model: 256
+  text_vocab_size: 2048
+  text_len: 24
+  text_embed_dim: 128
+  obj_dim: 12
+  human_dim: 24
+  robot_dim: 20
+  robot_latent_dim: 20
+  phase_classes: 2
+  recovery_classes: 4
+  graph:
+    node_dim: 16
+    hidden_dim: 64
+    out_dim: 128
+    num_layers: 2
+
+train:
+  epochs: 3
+  batch_size: 16
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
+  num_workers: 0
+
+loss:
+  lambda_motion: 1.0
+  lambda_interaction: 1.0
+  lambda_physics: 1.0
+  lambda_robot: 1.0
+  lambda_outcome: 1.0
+  lambda_rel: 0.5
+  lambda_intercept_feas: 0.7
+  lambda_stab_post: 0.7
+  lambda_fail_cls: 0.3
+  lambda_recovery: 0.5
+
+data:
+  sequence_length: 48
+  train_size: 512
+  val_size: 128
+  graph_nodes: 32
+
+constraints:
+  q_min: -1.5
+  q_max: 1.5
+  dq_max: 0.2
+  penetration_threshold: 0.08
+  contact_distance: 0.15

@@ -1,0 +1,14 @@
+torch
+torchvision
+tqdm
+colorama
+pyyaml
+typeguard
+numpy==1.26.4
+scipy
+trimesh
+joblib
+human_body_prior
+
+
+
