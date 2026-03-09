@@ -37,27 +37,44 @@ Example:
 
 ## 4. Method Overview
 
-High-level pipeline:
-```
-Text + Object State + Robot Embodiment
-            ↓
-Embodiment Graph Encoder + Interaction Reasoner
-            ↓
- Human-Object Generator + Co-Generation Head
-            ↓
-Task-Oriented Losses (Interaction/Physics/Robot)
-            ↓
-   Controller-in-the-loop Simulation + REIS
-```
+Main method (3 core modules):
 
-Implementation details (network blocks, embodiment encoding, losses, and training stages) are documented in [STORM.md](./STORM.md).
+1. **Embodiment Graph Encoder**
+- `URDF/MJCF/USD -> unified graph -> z_robot`.
+
+2. **Outcome-Centric Interaction Generator**
+- Input: text, object state, optional human state, embodiment tokens.
+- Output: human/object trajectories + robot-trackable targets + interaction outcomes.
+
+3. **Object-Centric Interaction Field**
+- Relative descriptors (`r_hand_obj`, `v_rel`) for interaction-invariant supervision.
+
+Optional module:
+- **Interaction Reasoner** is only retained when it predicts high-value signals
+  (contact anchors/intercept windows), not only phase labels.
+- Hand-control convention: default `6`-DoF `active_joint` policy output with runtime mimic expansion to `12` revolute joints; `12`-DoF independent hand control is ablation-only.
+
+Implementation details are documented in [STORM.md](./STORM.md).
 
 ## 5. Training Objective
 
-We optimize motion quality, interaction consistency, physical plausibility, and robot feasibility jointly.
+We use a compact 5-term objective:
 
-Detailed objective terms, stage-wise schedules, and practical hyper-parameter defaults are specified in [STORM.md](./STORM.md).
+```
+L_total = λ1 * L_motion
+        + λ2 * L_interaction
+        + λ3 * L_outcome
+        + λ4 * L_robot
+        + λ5 * L_physics
+```
 
+- `L_motion`: trajectory reconstruction/denoising quality.
+- `L_interaction`: contact timing consistency + object-centric relation alignment.
+- `L_outcome`: task outcome consistency (`t_c`, contact state, post-object state, stability).
+- `L_robot`: robot feasibility (joint limits, reachability, trackability).
+- `L_physics`: penetration, foot-sliding, and balance constraints.
+
+Detailed schedules and implementation notes are specified in [STORM.md](./STORM.md).
 
 ## 6. Datasets and Baselines
 

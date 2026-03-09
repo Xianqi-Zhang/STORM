@@ -2,7 +2,7 @@
 # Dataset
 FALLDATASET*
 DATASET_*
-assets
+# assets
 third_party
 outputs*
 output*

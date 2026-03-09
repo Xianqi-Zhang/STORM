@@ -48,7 +48,7 @@
 ## Immediate Next Steps (Execution Order)
 1. [ ] Install dependencies and run synthetic smoke training (`scripts/train_storm.py`).
 2. [ ] Build InterAct/OMOMO dataset adapter in `src/storm/data/`.
-3. [ ] Implement embodiment parser from `src/assets/unitree_g1/*.xml` into graph tensors.
+3. [ ] Implement embodiment parser from `src/storm/assets/robots/unitree_g1/*.xml` into graph tensors.
 4. [ ] Add baseline smoke scripts and metric logging.
 5. [ ] Launch Stage A on real data and validate losses/metrics.
 
