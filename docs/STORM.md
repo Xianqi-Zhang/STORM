@@ -1,13 +1,25 @@
-# STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation
+# STORM: Structured Task-Oriented Human-Robot Motion Co-Generation for Executable Human-Object Interaction
 
 ## Title
-**STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation for Humanoid-Object Interaction**
+**STORM: Structured Task-Oriented Human-Robot Motion Co-Generation for Executable Human-Object Interaction**
 
 ## Acronym
-**STORM** = **S**patio-**T**emporal **O**utcome-aligned **R**obot **M**otion Co-generation
+**STORM** = **S**tructured **T**ask-**O**riented Human-**R**obot **M**otion Co-Generation
 
 ## Document Scope
 This document provides the implementation and training details of STORM.
+
+## Title-Keyword to Module Mapping
+
+- **Structured** -> `Interaction Reasoner` + `Embodiment Graph Encoder`:
+  explicit phase/contact/state structure rather than pose-only trajectory fitting.
+- **Task-Oriented** -> objective design in `L_interaction` and `L_robot`:
+  optimize contact feasibility, timing correctness, and task completion instead of pure kinematic similarity.
+- **Human-Robot Motion Co-Generation** -> `Human-Object Motion Generator` + `Human-Robot Co-Generation Head`:
+  jointly produce human-object trajectories and robot-trackable latent targets under shared conditioning.
+- **Executable Human-Object Interaction** -> `Controller-in-the-loop Simulation` + `L_physics`/`L_robot`:
+  enforce stability, collision safety, and execution success in Isaac Lab / MuJoCo.
+
 
 ## 1. Scope
 

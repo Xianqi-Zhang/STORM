@@ -1,9 +1,9 @@
 # STORM
 
-**STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation for Humanoid-Object Interaction**
+**STORM: Structured Task-Oriented Human-Robot Motion Co-Generation for Executable Human-Object Interaction**
 
 **Acronym**  
-**STORM** = **S**patio-**T**emporal **O**utcome-aligned **R**obot **M**otion Co-generation
+**STORM** = **S**tructured **T**ask-**O**riented Human-**R**obot **M**otion Co-Generation
 
 ## Setup
 

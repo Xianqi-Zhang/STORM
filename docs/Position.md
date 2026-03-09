@@ -1,4 +1,4 @@
-# STORM: Spatio-Temporal Outcome-aligned Robot Motion Co-generation for Humanoid-Object Interaction
+# STORM: Structured Task-Oriented Human-Robot Motion Co-Generation for Executable Human-Object Interaction
 
 ## 1. Motivation
 
@@ -23,17 +23,17 @@ Example:
 
 ## 3. Core Contributions
 
-1. **Human-Robot Co-Generation (Primary Novelty)**
-   We co-generate human and robot-executable interaction motion in a shared representation, with object-aware contact reachability and minimal post-hoc projection, reducing retarget-induced error accumulation and latency.
+1. **Structured Interaction Modeling**
+   We represent HOI with explicit phase/contact/object-state structure via an interaction reasoner and embodiment-aware encoding, instead of direct pose-only generation.
 
-2. **Interaction Reasoning for HOI**
-   We model initiation-response dynamics between the human body and object state, including contact timing and phase transitions.
+2. **Task-Oriented Objective Design**
+   We optimize task completion signals (contact feasibility, timing correctness, and outcome consistency) rather than only kinematic similarity.
 
-3. **Interaction-Aware Physical Modeling**
-   We enforce differentiable HOI physics constraints during training, including contact consistency, collision avoidance, and balance stability.
+3. **Human-Robot Motion Co-Generation (Primary Novelty)**
+   We jointly generate human-object trajectories and robot-trackable motion targets in a shared conditional space, with minimal post-hoc projection to reduce retarget-induced error accumulation and latency.
 
-4. **Robot-Executable Evaluation Protocol**
-   We define a simulation-based protocol and a composite score (REIS) for robot executability.
+4. **Executable HOI via Physics and Closed-Loop Evaluation**
+   We enforce physical and robot-feasibility constraints during training and validate executability through simulation rollout and REIS.
 
 ## 4. Method Overview
 
@@ -41,11 +41,13 @@ High-level pipeline:
 ```
 Text + Object State + Robot Embodiment
             ↓
-   Human-Robot Co-Generation
+Embodiment Graph Encoder + Interaction Reasoner
             ↓
-   Interaction + Physics + Robot Feasibility
+ Human-Object Generator + Co-Generation Head
             ↓
-   Simulation Rollout and Evaluation
+Task-Oriented Losses (Interaction/Physics/Robot)
+            ↓
+   Controller-in-the-loop Simulation + REIS
 ```
 
 Implementation details (network blocks, embodiment encoding, losses, and training stages) are documented in [STORM.md](./STORM.md).
