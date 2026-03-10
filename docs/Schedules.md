@@ -24,6 +24,13 @@
 - [x] Implement Failure-Aware Recovery module (scaffold).
 - [x] Implement unified STORM V1 objective and config (scaffold).
 - [x] Add training entrypoint and synthetic smoke dataset.
+- [ ] Define and implement `Y_trackable` target schema (root/EE/contact/phase).
+- [ ] Add interaction token generator (`T_int`) with fixed slot count `K`.
+- [ ] Add bridge stabilization losses: `L_bridge` (stop-gradient consistency) + `L_bridge_gt` (grounded supervision).
+- [ ] Add mixed GT/generated conditioning for bridge inputs.
+- [ ] Add projection validity/confidence weighting for `y_r^gt` supervision.
+- [ ] Add reachability scorer `R(anchor, x_robot)` and `L_reach`.
+- [ ] Add explicit contact-time supervision (`t_contact`, `t_release`) in `L_outcome`.
 - [ ] Replace synthetic dataset with real InterAct/OMOMO dataloader.
 - [ ] Replace random embodiment graph with URDF/MJCF/USD parser.
 - [ ] Implement true critical-window constrained optimizer (not proxy smoothing).
@@ -34,6 +41,14 @@
 - [ ] Train Stage B (enable constrained refinement) on real data.
 - [ ] Train Stage C (enable failure recovery) with perturbation rollouts.
 - [ ] Run required ablations:
+  - [ ] No `Y_trackable` (direct full-pose robot prediction)
+  - [ ] No Embodiment Bridge
+  - [ ] No interaction tokens (`K=0`)
+  - [ ] Reduced token count (`K=4`) vs full (`K=8`)
+  - [ ] Token shuffle perturbation at test time
+  - [ ] No `L_bridge_gt` (consistency-only bridge)
+  - [ ] No reachability prior (`L_reach`)
+  - [ ] No explicit contact-time term (`L_contact_time`)
   - [ ] No Outcome-Centric head
   - [ ] No interaction field loss (`L_rel`)
   - [ ] No critical-window refinement
@@ -47,10 +62,14 @@
 
 ## Immediate Next Steps (Execution Order)
 1. [ ] Install dependencies and run synthetic smoke training (`scripts/train_storm.py`).
-2. [ ] Build InterAct/OMOMO dataset adapter in `src/storm/data/`.
-3. [ ] Implement embodiment parser from `src/storm/assets/robots/unitree_g1/*.xml` into graph tensors.
-4. [ ] Add baseline smoke scripts and metric logging.
-5. [ ] Launch Stage A on real data and validate losses/metrics.
+2. [ ] Implement `Y_trackable` API and logging in `src/storm/models/`.
+3. [ ] Build InterAct/OMOMO dataset adapter in `src/storm/data/`.
+4. [ ] Implement interaction-token module (`K` fixed, slot-based conditioning).
+5. [ ] Implement embodiment parser from `src/storm/assets/robots/unitree_g1/*.xml` into graph tensors.
+6. [ ] Add bridge warmup stage (`L_bridge_gt`) then joint stage (`L_total`) with `λ_b` ramp.
+7. [ ] Add reachability scorer and contact-time labels to training batches.
+8. [ ] Add baseline smoke scripts and metric logging.
+9. [ ] Launch Stage A on real data and validate losses/metrics.
 
 ## Current V1 Scope Freeze
 - Tasks: box carrying (static object), ball catch/intercept (dynamic object).
