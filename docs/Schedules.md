@@ -29,7 +29,7 @@
 - [ ] Add bridge stabilization losses: `L_bridge` (stop-gradient consistency) + `L_bridge_gt` (grounded supervision).
 - [ ] Add mixed GT/generated conditioning for bridge inputs.
 - [ ] Add projection validity/confidence weighting for `y_r^gt` supervision.
-- [ ] Add reachability scorer `R(anchor, x_robot)` and `L_reach`.
+- [ ] Add reachability scorer `R(anchor, x_robot)` and integrate as sub-term in `L_robot`.
 - [ ] Add explicit contact-time supervision (`t_contact`, `t_release`) in `L_outcome`.
 - [ ] Replace synthetic dataset with real InterAct/OMOMO dataloader.
 - [ ] Replace random embodiment graph with URDF/MJCF/USD parser.
@@ -55,6 +55,15 @@
   - [ ] No failure recovery head
 - [ ] Compare against generate-then-retarget baseline.
 
+## Optional Innovation Upgrades (Post-V1)
+- [ ] Add feasibility predictor head `F(s_h, s_o, y_r, x_robot)` and `L_feas`.
+- [ ] Add contrastive cross-view consistency (positive/negative HOI-robot pairs).
+- [ ] Add intervention-style contact robustness training (timing/anchor perturbations; no formal causal-identification claim).
+- [ ] Run novelty-focused ablations:
+  - [ ] `+L_feas` vs baseline STORM
+  - [ ] L2-only bridge vs contrastive bridge
+  - [ ] without vs with contact intervention robustness
+
 ## Phase 4: Report and Next Iteration Gate
 - [ ] Report REIS and component metrics.
 - [ ] Confirm "different poses, same outcome" on static and dynamic tasks.
@@ -70,6 +79,7 @@
 7. [ ] Add reachability scorer and contact-time labels to training batches.
 8. [ ] Add baseline smoke scripts and metric logging.
 9. [ ] Launch Stage A on real data and validate losses/metrics.
+10. [ ] (Optional Post-V1) Implement feasibility head and novelty ablations.
 
 ## Current V1 Scope Freeze
 - Tasks: box carrying (static object), ball catch/intercept (dynamic object).

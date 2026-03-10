@@ -31,11 +31,23 @@ Example:
 
 3. **Human-Robot Motion Co-Generation (Primary Novelty)**
    We jointly generate human-object trajectories and robot-executable targets via a **Cross-Embodiment Co-Generation** mechanism with a shared interaction latent and an Embodiment Bridge in a robot-trackable target space `Y_trackable`, modeling `p(s_h, s_o, y_r | x)` rather than `p(y_r | s_h, s_o)`.  
+   **Positioning**: STORM is a compatibility-constrained generative framework for embodied interaction synthesis.
    **Method-level novelty**: bidirectional embodiment alignment where robot-trackable targets constrain HOI generation and HOI trajectories constrain robot targets, not a post-hoc retarget step.
    **Necessity**: human motions are often infeasible for a specific robot (e.g., reach distance exceeds arm length), so human generation must be influenced by robot feasibility; co-generation enforces this coupling during generation instead of a late-stage correction.
 
 4. **Executable HOI via Physics and Closed-Loop Evaluation**
    We enforce physical and robot-feasibility constraints during training and validate executability through simulation rollout and REIS.
+
+### Paper-Ready Contribution Paragraphs
+
+**Abstract-style paragraph**
+STORM is a compatibility-constrained generative framework for embodied interaction synthesis. Instead of generating human-object motion and retargeting afterward, STORM jointly models human motion, object dynamics, and robot-trackable interaction targets under shared interaction intent: `p(s_h, s_o, y_r | x)`. The method introduces a robot-agnostic trackable interaction interface and cross-view consistency learning between HOI dynamics and robot control targets, improving executable alignment during generation. Compatibility is enforced through soft training constraints over reachability, controller trackability, HOI geometry consistency, and bridge-based cross-view alignment, yielding interactions that are simultaneously human-realistic, object-consistent, and robot-executable.
+
+**Introduction-style paragraph**
+The central contribution of STORM is a shift from pipeline integration to compatibility-constrained interaction modeling. We formulate embodied HOI synthesis as joint conditional generation over `(s_h, s_o, y_r)` rather than a generate-then-retarget decomposition, so embodiment constraints influence interaction generation directly. We further define a robot-agnostic trackable interaction representation that preserves interaction semantics while remaining controller-executable across embodiments. Finally, we introduce cross-view consistency learning that aligns robot targets inferred from HOI dynamics with robot targets produced by the generative stream, providing stable embodiment-aware supervision during training.
+
+**Method-opener paragraph**
+STORM models embodied interaction as joint generation with shared intent and soft compatibility constraints. Given condition `x` (task text, scene/object context, embodiment), the model samples interaction intent and jointly predicts human trajectory `s_h`, object trajectory `s_o`, and robot-trackable targets `y_r`. Training combines motion, interaction, outcome, robot-feasibility, and physics objectives with a cross-view bridge objective and grounded bridge supervision. This design treats compatibility not as post-hoc correction but as a learned constraint: reachability and trackability are enforced in `L_robot`, HOI geometric consistency in `L_interaction`, and HOI-robot alignment in `L_bridge/L_bridge_gt`.
 
 ## 4. Method Overview
 
@@ -102,6 +114,22 @@ Interpretation:
 - `L_bridge` couples generated HOI and generated robot targets.
 - `L_bridge_gt` grounds bridge predictions to physically valid projected targets.
 
+Compatibility mapping (explicit):
+- reachability and controller feasibility: `L_robot`,
+- HOI geometry consistency: `L_interaction`,
+- cross-view HOI/robot consistency: `L_bridge`, `L_bridge_gt`.
+
+Compatibility scope:
+- constraints are soft training objectives, not hard feasibility guarantees.
+
+Formal compatibility score:
+
+```
+C(s_h, s_o, y_r) = - (a1 * L_interaction + a2 * L_robot + a3 * L_bridge + a4 * L_bridge_gt)
+```
+
+Higher `C` indicates better compatibility between HOI dynamics and robot-executable targets.
+
 - `L_motion`: trajectory reconstruction/denoising quality.
 - `L_interaction`: contact timing consistency + object-centric relation alignment.
 - `L_outcome`: task outcome consistency with explicit contact-time supervision (`t_contact`, `t_release`, contact state, post-object state, stability).
@@ -109,6 +137,18 @@ Interpretation:
 - `L_physics`: penetration, foot-sliding, and balance constraints.
 - `L_bridge`: consistency `||y_hat_r - sg(B_phi(s_hat_h, s_hat_o))||^2` (updates generator side).
 - `L_bridge_gt`: grounded bridge supervision `||B_phi(s_h^gt, s_o^gt) - y_r^gt||^2` (updates bridge side).
+
+Two-view bridge interpretation:
+- HOI dynamics view: `y_r^{hoi} = B_phi(s_h, s_o)`
+- Generative view: `y_r^{gen}` from the co-generation stream
+- Consistency objective: `L_consistency = ||y_r^{gen} - y_r^{hoi}||^2` (implemented as `L_bridge` with stop-gradient on HOI view)
+
+Planned innovation path (post-V1):
+- add feasibility prediction `F(s_h, s_o, y_r, x_robot)` with `L_feas`,
+- optionally upgrade bridge alignment to contrastive cross-view consistency,
+- optionally add contact intervention robustness on timing/anchor variables.
+
+This staged plan keeps the current formulation stable while increasing algorithmic novelty in controlled increments.
 
 Detailed schedules and implementation notes are specified in [STORM.md](./STORM.md).
 

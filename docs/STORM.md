@@ -35,7 +35,7 @@ Given a task condition `x` (text, scene/object context, and robot embodiment), S
 - object trajectory `s_o`,
 - robot-trackable targets `y_r`.
 
-The key idea is to model the joint process `p(s_h, s_o, y_r | x)` under a shared interaction intent, then use an Embodiment Bridge to align HOI dynamics with robot-executable targets during training. This avoids the common generate-then-retarget mismatch.
+The key idea is to model the joint process `p(s_h, s_o, y_r | x)` under a shared interaction intent with compatibility constraints learned during training, then use an Embodiment Bridge to align HOI dynamics with robot-executable targets. This avoids the common generate-then-retarget mismatch.
 
 ### 1.2 Symbol Guide
 - `x`: task condition (`x_txt`, `x_scene`, `x_obj`, `x_robot`)
@@ -45,6 +45,18 @@ The key idea is to model the joint process `p(s_h, s_o, y_r | x)` under a shared
 - `y_r`: generated robot targets in `Y_trackable`
 - `B_phi`: Embodiment Bridge mapping HOI trajectories to robot-trackable targets
 - `y_r_gt`: grounded robot targets from projection/IK
+
+### 1.3 Paper-Ready Contribution Paragraphs
+This subsection is for manuscript writing reuse and is not required for implementation.
+
+**Abstract-style paragraph**
+STORM is a compatibility-constrained generative framework for embodied interaction synthesis. Instead of generating human-object motion and retargeting afterward, STORM jointly models human motion, object dynamics, and robot-trackable interaction targets under shared interaction intent: `p(s_h, s_o, y_r | x)`. The method introduces a robot-agnostic trackable interaction interface and cross-view consistency learning between HOI dynamics and robot control targets, improving executable alignment during generation. Compatibility is enforced through soft training constraints over reachability, controller trackability, HOI geometry consistency, and bridge-based cross-view alignment, yielding interactions that are simultaneously human-realistic, object-consistent, and robot-executable.
+
+**Introduction-style paragraph**
+The central contribution of STORM is a shift from pipeline integration to compatibility-constrained interaction modeling. We formulate embodied HOI synthesis as joint conditional generation over `(s_h, s_o, y_r)` rather than a generate-then-retarget decomposition, so embodiment constraints influence interaction generation directly. We further define a robot-agnostic trackable interaction representation that preserves interaction semantics while remaining controller-executable across embodiments. Finally, we introduce cross-view consistency learning that aligns robot targets inferred from HOI dynamics with robot targets produced by the generative stream, providing stable embodiment-aware supervision during training.
+
+**Method-opener paragraph**
+STORM models embodied interaction as joint generation with shared intent and soft compatibility constraints. Given condition `x` (task text, scene/object context, embodiment), the model samples interaction intent and jointly predicts human trajectory `s_h`, object trajectory `s_o`, and robot-trackable targets `y_r`. Training combines motion, interaction, outcome, robot-feasibility, and physics objectives with a cross-view bridge objective and grounded bridge supervision. This design treats compatibility not as post-hoc correction but as a learned constraint: reachability and trackability are enforced in `L_robot`, HOI geometric consistency in `L_interaction`, and HOI-robot alignment in `L_bridge/L_bridge_gt`.
 
 ## 2. Input and Representation
 
@@ -151,7 +163,7 @@ R(anchor, x_robot) -> [0, 1]
 
 where `R` predicts whether a contact anchor is reachable by the current embodiment.
 This prior can be used both as:
-- a training loss (`L_reach`),
+- a sub-term in `L_robot` during training,
 - and a sampling-time feasibility filter.
 
 ### 3.5 Optional Interaction Reasoner
@@ -186,52 +198,72 @@ Design decision:
 - **Not** a single end-to-end controller for all joints.
 - Body and hand are optimized separately with coordinated interface constraints.
 
-## 4. Formulation and Training
+## 4. Algorithm Specification
 
-### 4.1 Method-Level Formulation (Core Identity)
+This section provides one linear implementation view: forward pass, objective, optimization protocol, and schedule.
 
-Let `x = {x_txt, x_scene, x_obj, x_robot}` be the task condition.
-STORM models joint co-generation:
+### 4.1 Probabilistic Identity
+
+Let `x = {x_txt, x_scene, x_obj, x_robot}`. STORM uses a single joint factorization:
 
 ```
-p(s_h, s_o, y_r | x) = ∫ p(z_int | x)
-  p(s_h, s_o, y_r | z_int, x) dz_int
+p(s_h, s_o, y_r | x) = ∫ p(z_int | x) p(s_h, s_o, y_r | z_int, x) dz_int
 ```
 
-where:
-- `s_h`: human trajectory,
-- `s_o`: object trajectory,
-- `y_r ∈ Y_trackable`: robot-trackable targets.
-
-This contrasts with two-stage pipelines `p(s_h, s_o | x) p(y_r | s_h, s_o)`.
+where `y_r ∈ Y_trackable`.  
 This is the only probabilistic factorization used in this document.
 
-Reader takeaway:
-- STORM is a joint generator conditioned on intent and embodiment.
-- It is not a post-hoc retargeting pipeline.
-
-### 4.2 Token-Conditioned Forward (Pseudo)
+### 4.2 Forward Pass (Implementation Form)
 
 ```
 Input: x = {x_txt, x_scene, x_obj, x_robot}
 z_int = InteractionLatent(x)
-T_int = TokenGenerator(z_int)  # fixed K slots
-
-# Joint co-generation (not sequential retargeting)
+T_int = TokenGenerator(z_int)                  # fixed K slots
 s_h_hat, s_o_hat, y_r_hat = CoGenerator(x, z_int, T_int)
 ```
 
-### 4.3 Base Losses
+Two-view bridge variables:
+- `y_r_gen = y_r_hat` (generative view)
+- `y_r_hoi = B_phi(s_h_hat, s_o_hat)` (HOI dynamics view)
+
+### 4.3 Unified Training Objective
+
+Base objective:
 
 ```
 L_base = L_motion + L_interaction + L_physics + L_outcome + L_robot
 ```
 
-- `L_motion`: reconstruction/denoising quality for human-object trajectories.
-- `L_interaction`: interaction field alignment and contact consistency.
-- `L_outcome`: outcome supervision with explicit timing (`t_contact`, `t_release`).
-- `L_robot`: embodiment feasibility (joint limits, trackability, and reachability). Reachability is included as an internal sub-term of `L_robot` (not a separate top-level loss in `L_total`).
-- `L_physics`: penetration, foot-sliding, and balance constraints.
+Bridge objective:
+
+```
+L_bridge = (1/T) * Σ_t || y_r_gen[t] - sg(y_r_hoi[t]) ||^2
+```
+
+Grounded bridge supervision:
+
+```
+y_r_gt = Pi_robot(s_h_gt, s_o_gt)
+L_bridge_gt = (1/T) * Σ_t c[t] * || B_phi(s_h_gt[t], s_o_gt[t]) - y_r_gt[t] ||^2
+```
+
+Total training objective:
+
+```
+L_total = L_base + λ_b * L_bridge + λ_g * L_bridge_gt
+```
+
+Compatibility interpretation:
+- STORM uses soft compatibility constraints (not hard-constrained optimization).
+- Formal score (for analysis):
+
+```
+C(s_h, s_o, y_r) = - (a1 * L_interaction + a2 * L_robot + a3 * L_bridge + a4 * L_bridge_gt)
+```
+
+Higher `C` indicates better compatibility across HOI geometry, embodiment feasibility, and cross-view alignment.
+
+### 4.4 Loss Semantics and Decompositions
 
 Loss-role summary:
 
@@ -242,61 +274,10 @@ Loss-role summary:
 | `L_outcome` | task success and contact timing correctness |
 | `L_robot` | embodiment feasibility (including reachability) |
 | `L_physics` | dynamic plausibility and safety |
-| `L_bridge` | cross-stream alignment |
+| `L_bridge` | cross-view alignment |
 | `L_bridge_gt` | bridge grounding to projected executable targets |
 
-### 4.4 Bridge Stabilization (Optimization-Level)
-
-```
-y_tilde = B_phi(s_h_hat, s_o_hat)
-L_bridge = (1/T) * Σ_t || y_r_hat[t] - sg(y_tilde[t]) ||^2
-```
-
-`sg(.)` is stop-gradient.
-Gradient flow:
-- `L_bridge` updates generator parameters,
-- bridge parameters are grounded by `L_bridge_gt` below.
-
-Grounded bridge supervision:
-
-```
-y_r_gt = Pi_robot(s_h_gt, s_o_gt)
-L_bridge_gt = (1/T) * Σ_t c[t] * || B_phi(s_h_gt[t], s_o_gt[t]) - y_r_gt[t] ||^2
-```
-
-`c[t]` is a projection-validity indicator (or confidence weight) from IK/retargeting checks.
-Frames with failed IK/projection are masked (`c[t]=0`) and excluded from grounded supervision.
-
-Mixed conditioning to reduce train-inference gap:
-
-```
-(s_h_in, s_o_in) =
-  (s_h_gt, s_o_gt) with prob p
-  (s_h_hat, s_o_hat) with prob 1-p
-```
-
-Practical meaning:
-- `L_bridge` enforces agreement between robot outputs and HOI-implied robot targets.
-- `L_bridge_gt` keeps the bridge physically grounded and avoids degenerate agreement.
-- Mixed conditioning makes the bridge robust to generated trajectories at inference time.
-
-### 4.5 Final Objective and Schedule
-
-```
-L_total = L_base + λ_b * L_bridge + λ_g * L_bridge_gt
-```
-
-Stability schedule:
-1. bridge warmup with `L_bridge_gt`,
-2. joint training with full `L_total` and ramped `λ_b`.
-
-Implementation note:
-- Warmup prevents early noisy HOI predictions from destabilizing bridge learning.
-- Ramp-up on `λ_b` makes consistency pressure increase as generation quality improves.
-
-### 4.6 Outcome and Contact-Time Decomposition
-
-To emphasize HOI-critical timing, we explicitly decompose:
+`L_outcome` decomposition:
 
 ```
 L_outcome = u1 * L_contact_time
@@ -305,11 +286,7 @@ L_outcome = u1 * L_contact_time
           + u4 * L_post_stability
 ```
 
-where `L_contact_time` supervises key timestamps (`t_contact`, `t_release`).
-
-### 4.7 Robot Feasibility Decomposition
-
-`L_robot` is decomposed as:
+`L_robot` decomposition:
 
 ```
 L_robot = w_b * L_robot_body
@@ -317,23 +294,59 @@ L_robot = w_b * L_robot_body
         + w_i * L_interface
 ```
 
-- `L_robot_body`: joint limits, body trackability, balance, and reachability.
-- `L_robot_hand`: finger limits, grasp/contact consistency, and local dexterity stability.
-- `L_interface`: wrist-hand consistency (hand behavior conditioned on wrist trajectory and contact intent).
+Notes:
+- Reachability is implemented as a sub-term of `L_robot`.
+- Controller tracking feasibility is enforced by `L_robot` and rollout-based evaluation.
 
-This enforces body-hand coordination without collapsing into a single monolithic end-to-end control objective.
+### 4.5 Optimization Protocol
 
-Hand-control implementation convention:
-- policy output: `q_hand_active` (6-DoF)
-- execution state: `q_hand_full` (12 revolute joints after mimic expansion)
-- training default uses 6-DoF action space for sim2real consistency
-- mimic expansion follows the URDF coupling equations (documented in `src/storm/assets/README.md`).
+Gradient flow:
+- `L_bridge` updates generator parameters through `y_r_gen` (HOI branch is stop-gradient).
+- `L_bridge_gt` updates bridge parameters via grounded supervision.
 
-### 4.8 Time Alignment Convention
-- Resample human, object, and robot trajectories to a shared frame rate (default `30 Hz`).
-- Use linear interpolation for dense states and nearest-neighbor for discrete contact/grasp states.
-- Use padding masks for variable-length sequences in batch training.
+Projection reliability handling:
+- `c[t]` is a projection-validity/confidence weight from IK/retargeting checks.
+- Failed projection frames use `c[t]=0` and are excluded from `L_bridge_gt`.
+
+Mixed conditioning for bridge robustness:
+
+```
+(s_h_in, s_o_in) =
+  (s_h_gt, s_o_gt) with prob p
+  (s_h_hat, s_o_hat) with prob 1-p
+```
+
+### 4.6 Training Schedule
+
+1. Bridge warmup:
+- optimize `L_bridge_gt` to stabilize HOI->robot mapping.
+
+2. Joint training:
+- optimize `L_total` with ramped `λ_b`.
+
+3. Simulation refinement:
+- use rollout statistics to tune feasibility/stability weights.
+
+### 4.7 Alignment and Batching Rules
+
+- Resample human/object/robot trajectories to a shared frame rate (`30 Hz` default).
+- Linear interpolation for dense states; nearest-neighbor for discrete contact states.
+- Use padding masks for variable-length sequences.
 - Drop or mask invalid synchronized frames before loss accumulation.
+
+### 4.8 Planned Innovation Upgrades (Next Iteration)
+
+1. **Feasibility prediction head (primary)**
+- `F(s_h, s_o, y_r, x_robot) -> [0, 1]`
+- `L_feas = BCE(F(...), success_label)`
+- `L_total_next = L_total + λ_f * L_feas`
+
+2. **Cross-view contrastive consistency**
+- Add contrastive positives/negatives on HOI-robot pairs to strengthen shared representation.
+
+3. **Contact intervention robustness (optional)**
+- Perturb contact timing/anchors/sequence during training.
+- Train for stable outcomes under intervention-style perturbations (not a formal causal-identification claim).
 
 ## 5. Why Co-Generation Instead of Retarget-Only
 
