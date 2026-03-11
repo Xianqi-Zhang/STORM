@@ -1,8 +1,9 @@
 
 # Dataset
-FALLDATASET*
+*DATASET*
 DATASET_*
 # assets
+baselines
 third_party
 outputs*
 output*
