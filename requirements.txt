@@ -9,6 +9,9 @@ scipy
 trimesh
 joblib
 human_body_prior
+torchaudio-2.7.0
+imageio==2.37.0
+
 
 
 
