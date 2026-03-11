@@ -6,10 +6,20 @@
 - `[ ]` not started
 
 ## Phase 0: Environment and Data Readiness
-- [ ] Verify Python environment and dependencies (`torch`, `numpy`, `pyyaml`).
+
+### 0.1 Enviroment
+- [x] Verify Python environment and dependencies (`torch`, `numpy`, `pyyaml`).
 - [ ] Verify dataset locations (`DATASETS/OMOMO`, InterAct assets if available).
 - [ ] Run baseline data conversion smoke test (InterAct -> InterMimic replay path).
 - [x] Freeze one robot embodiment for V1 (Unitree G1).
+
+### 0.2 Datasets
+- [x] behave
+- [x] grab
+- [] intercap
+- [x] omomo
+- [x] parahome
+- [x] arctic
 
 ## Phase 1: Baseline Smoke Benchmark
 - [ ] Run minimal HOI-Diff sampling on a small prompt set.
